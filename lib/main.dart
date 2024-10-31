@@ -1,5 +1,7 @@
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
+import 'package:namer_app/logs_pages.dart';
+import 'package:namer_app/retrain_page.dart';
 import 'package:provider/provider.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'blog_row.dart';
@@ -9,9 +11,8 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:rflutter_alert/rflutter_alert.dart';
 
-
 final HttpLink httpLink = HttpLink(
-  "https://mysite-hdva.onrender.com/graphql/");
+  "https://hackernews-r8vt.onrender.com/graphql/");
 
 final ValueNotifier<GraphQLClient> client = ValueNotifier<GraphQLClient>(
   GraphQLClient(
@@ -28,11 +29,9 @@ query   Links {
 }
 """;
 
-
 void main() {
   runApp(MyApp());
 }
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -51,87 +50,6 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-class LogsPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    return  Query(
-                options: QueryOptions(
-                    document: gql(query),
-                    variables: const <String, dynamic>{"variableName": "value"}),
-                builder: (result, {fetchMore, refetch}) {
-                  if (result.isLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
-                    );
-                  }
-                  print(result);
-                  if (result.data == null) {
-                    return const Center(
-                      child: Text("No logs found!"),
-                    );
-                  }
-                  final posts = result.data!['links'];
-                  return ListView.builder(
-                    itemCount: posts.length,
-                    itemBuilder: (context, index) {
-                      final post = posts[index];
-                      final url = post['url'];
-                      final description = post['description'];
-                      return BlogRow(
-                        url: url,
-                        description: description,
-                      );
-                    },
-                  );
-});
-}
-}
-
-
-class RetrainPage extends StatelessWidget {
-  final TextEditingController datasetUrlController = TextEditingController();
-  final TextEditingController shaController = TextEditingController();
-
-  @override
-  Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    return Center(
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: datasetUrlController,
-              decoration: InputDecoration(hintText: 'Ingrese URL del dataset'),
-            ),
-            TextField(
-              controller: shaController,
-              decoration: InputDecoration(hintText: 'Ingrese el SHA'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                appState.retrainModel(
-                  datasetUrl: datasetUrlController.text,
-                  sha: shaController.text,
-                  githubToken: "token",
-                );
-              },
-              child: Text('Reentrenar'),
-            ),
-            Consumer<MyAppState>(
-              builder: (context, appState, child) {
-                return Text(appState.retrainResult ?? '');
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 
 class ModelPage extends StatelessWidget {
   final TextEditingController ageController = TextEditingController();
@@ -387,7 +305,7 @@ class _MyHomePageState extends State<MyHomePage> {
         page = GeneratorPage();
         break;
       case 1:
-        page = FavoritesPage();
+        page = LogsPage();
         break;
       case 2:
         page = ModelPage();
@@ -409,7 +327,9 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
 
-    return Scaffold(
+    return GraphQLProvider (
+      client: client, 
+      child : Scaffold(
       body: LayoutBuilder(
         builder: (context, constraints) {
           if (constraints.maxWidth < 450) {
@@ -427,7 +347,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                       BottomNavigationBarItem(
                         icon: Icon(Icons.favorite),
-                        label: 'Favorites',
+                        label: 'logs',
                       ),
                       BottomNavigationBarItem(
                         icon: Icon(Icons.heart_broken),
@@ -461,7 +381,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                       NavigationRailDestination(
                         icon: Icon(Icons.favorite),
-                        label: Text('Favorites'),
+                        label: Text('logs'),
                       ),
                       NavigationRailDestination(
                         icon: Icon(Icons.heart_broken),
@@ -486,6 +406,7 @@ class _MyHomePageState extends State<MyHomePage> {
           }
         },
       ),
+     ),
     );
   }
 }
