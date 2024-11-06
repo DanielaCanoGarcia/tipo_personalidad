@@ -207,7 +207,7 @@ class _MyHomePageState extends State<MyHomePage> {
         page = ModelPage();
         break;
       case 3:
-        page = RetrainPage ();
+        page = SeguimientoPage();
         break;
       case 4:
         page = LoginPage ();
@@ -254,7 +254,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                       BottomNavigationBarItem(
                         icon: Icon(Icons.add_box),
-                        label: 'Retrain',
+                        label: 'SeguimientoPage',
                       ),
                       BottomNavigationBarItem(
                         icon: Icon(Icons.login_sharp),
@@ -292,7 +292,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                       NavigationRailDestination(
                         icon: Icon(Icons.add_box),
-                        label: Text('Retrain'),
+                        label: Text('SeguimientoPage'),
                       ),
                       NavigationRailDestination(
                         icon: Icon(Icons.add_box),
