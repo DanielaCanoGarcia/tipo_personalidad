@@ -1,14 +1,8 @@
-import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
+import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:namer_app/blog_row.dart';
 import 'package:namer_app/main.dart';
 import 'package:provider/provider.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
-import 'blog_row.dart';
-import 'dart:convert';
-import 'dart:async';
-import 'package:http/http.dart' as http;
-import 'package:flutter/services.dart' show rootBundle;
-import 'package:rflutter_alert/rflutter_alert.dart';
 
 class LogsPage extends StatelessWidget {
   @override

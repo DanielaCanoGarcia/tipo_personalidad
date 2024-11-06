@@ -1,7 +1,11 @@
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
+import 'package:namer_app/generator_page.dart';
+import 'package:namer_app/login_page.dart';
 import 'package:namer_app/logs_pages.dart';
+import 'package:namer_app/model_page.dart';
 import 'package:namer_app/retrain_page.dart';
+import 'package:namer_app/seguimiento_page.dart';
 import 'package:provider/provider.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'blog_row.dart';
@@ -29,6 +33,14 @@ query   Links {
 }
 """;
 
+const String loginPostMutation = """
+mutation{
+  tokenAuth(username:"DaniCG",password:"CAGD020425"){
+    token
+  }
+}
+""";
+
 void main() {
   runApp(MyApp());
 }
@@ -51,129 +63,12 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class ModelPage extends StatelessWidget {
-  final TextEditingController ageController = TextEditingController();
-  final TextEditingController sexController = TextEditingController();
-  final TextEditingController cpController = TextEditingController();
-  final TextEditingController trestbpsController = TextEditingController();
-  final TextEditingController cholController = TextEditingController();
-  final TextEditingController fbsController = TextEditingController();
-  final TextEditingController restecgController = TextEditingController();
-  final TextEditingController thalachController = TextEditingController();
-  final TextEditingController exangController = TextEditingController();
-  final TextEditingController oldpeakController = TextEditingController();
-  final TextEditingController slopeController = TextEditingController();
-  final TextEditingController caController = TextEditingController();
-  final TextEditingController thalController = TextEditingController();
-
-  @override
-  Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    return Center(
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: ageController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(hintText: 'age'),
-            ),
-            TextField(
-              controller: sexController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(hintText: 'sex'),
-            ),
-            TextField(
-              controller: cpController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(hintText: 'cp'),
-            ),
-            TextField(
-              controller: trestbpsController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(hintText: 'trestbps'),
-            ),
-            TextField(
-              controller: cholController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(hintText: 'chol'),
-            ),
-            TextField(
-              controller: fbsController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(hintText: 'fbs'),
-            ),
-            TextField(
-              controller: restecgController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(hintText: 'restecg'),
-            ),
-            TextField(
-              controller: thalachController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(hintText: 'thalach'),
-            ),
-            TextField(
-              controller: exangController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(hintText: 'exang'),
-            ),
-            TextField(
-              controller: oldpeakController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(hintText: 'oldpeak'),
-            ),
-            TextField(
-              controller: slopeController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(hintText: 'slope'),
-            ),
-            TextField(
-              controller: caController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(hintText: 'ca'),
-            ),
-            TextField(
-              controller: thalController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(hintText: 'thal'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                appState.callModel(
-                  age: int.parse(ageController.text),
-                  sex: int.parse(sexController.text),
-                  cp: int.parse(cpController.text),
-                  trestbps: int.parse(trestbpsController.text),
-                  chol: int.parse(cholController.text),
-                  fbs: int.parse(fbsController.text),
-                  restecg: int.parse(restecgController.text),
-                  thalach: int.parse(thalachController.text),
-                  exang: int.parse(exangController.text),
-                  oldpeak: double.parse(oldpeakController.text),
-                  slope: int.parse(slopeController.text),
-                  ca: int.parse(caController.text),
-                  thal: int.parse(thalController.text),
-                );
-              },
-              child: Text('Predict'),
-            ),
-            Consumer<MyAppState>(
-              builder: (context, appState, child) {
-                return Text(appState.predictionResult ?? '');
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class MyAppState extends ChangeNotifier {
   var current = WordPair.random();
   var history = <WordPair>[];
+  var username = "";
+  var token = "";
+  var error = "";
 
   GlobalKey? historyListKey;
   String? predictionResult;
@@ -261,6 +156,7 @@ class MyAppState extends ChangeNotifier {
     notifyListeners();
   }
 
+
   void getNext() {
     history.insert(0, current);
     var animatedList = historyListKey?.currentState as AnimatedListState?;
@@ -313,6 +209,9 @@ class _MyHomePageState extends State<MyHomePage> {
       case 3:
         page = RetrainPage ();
         break;
+      case 4:
+        page = LoginPage ();
+        break;
       default:
         throw UnimplementedError('no widget for $selectedIndex');
     }
@@ -357,6 +256,10 @@ class _MyHomePageState extends State<MyHomePage> {
                         icon: Icon(Icons.add_box),
                         label: 'Retrain',
                       ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.login_sharp),
+                        label: 'Login',
+                      ),
                     ],
                     currentIndex: selectedIndex,
                     onTap: (value) {
@@ -391,6 +294,10 @@ class _MyHomePageState extends State<MyHomePage> {
                         icon: Icon(Icons.add_box),
                         label: Text('Retrain'),
                       ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.add_box),
+                        label: Text('Login'),
+                      ),
                     ],
                     selectedIndex: selectedIndex,
                     onDestinationSelected: (value) {
@@ -407,149 +314,6 @@ class _MyHomePageState extends State<MyHomePage> {
         },
       ),
      ),
-    );
-  }
-}
-
-class GeneratorPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    var pair = appState.current;
-
-    IconData icon;
-    if (appState.favorites.contains(pair)) {
-      icon = Icons.favorite;
-    } else {
-      icon = Icons.favorite_border;
-    }
-
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Expanded(
-            flex: 3,
-            child: HistoryListView(),
-          ),
-          SizedBox(height: 10),
-          BigCard(pair: pair),
-          SizedBox(height: 10),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () {
-                  appState.toggleFavorite();
-                },
-                icon: Icon(icon),
-                label: Text('Like'),
-              ),
-              SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: () {
-                  appState.getNext();
-                },
-                child: Text('Next'),
-              ),
-            ],
-          ),
-          Spacer(flex: 2),
-        ],
-      ),
-    );
-  }
-}
-
-class BigCard extends StatelessWidget {
-  const BigCard({
-    Key? key,
-    required this.pair,
-  }) : super(key: key);
-
-  final WordPair pair;
-
-  @override
-  Widget build(BuildContext context) {
-    var theme = Theme.of(context);
-    var style = theme.textTheme.displayMedium!.copyWith(
-      color: theme.colorScheme.onPrimary,
-    );
-
-    return Card(
-      color: theme.colorScheme.primary,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: AnimatedSize(
-          duration: Duration(milliseconds: 200),
-          // Make sure that the compound word wraps correctly when the window
-          // is too narrow.
-          child: MergeSemantics(
-            child: Wrap(
-              children: [
-                Text(
-                  pair.first,
-                  style: style.copyWith(fontWeight: FontWeight.w200),
-                ),
-                Text(
-                  pair.second,
-                  style: style.copyWith(fontWeight: FontWeight.bold),
-                )
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class FavoritesPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    var theme = Theme.of(context);
-    var appState = context.watch<MyAppState>();
-
-    if (appState.favorites.isEmpty) {
-      return Center(
-        child: Text('No favorites yet.'),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(30),
-          child: Text('You have '
-              '${appState.favorites.length} favorites:'),
-        ),
-        Expanded(
-          // Make better use of wide windows with a grid.
-          child: GridView(
-            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 400,
-              childAspectRatio: 400 / 80,
-            ),
-            children: [
-              for (var pair in appState.favorites)
-                ListTile(
-                  leading: IconButton(
-                    icon: Icon(Icons.delete_outline, semanticLabel: 'Delete'),
-                    color: theme.colorScheme.primary,
-                    onPressed: () {
-                      appState.removeFavorite(pair);
-                    },
-                  ),
-                  title: Text(
-                    pair.asLowerCase,
-                    semanticsLabel: pair.asPascalCase,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
