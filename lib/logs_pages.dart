@@ -31,9 +31,10 @@ class LogsPage extends StatelessWidget {
                       final post = posts[index];
                       final url = post['url'];
                       final description = post['description'];
+                      final user = post["postedBy"]["username"];
                       return BlogRow(
                         url: url,
-                        description: description,
+                        description: description + " by " + user,
                       );
                     },
                   );

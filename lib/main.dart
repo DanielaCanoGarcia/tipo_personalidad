@@ -15,20 +15,14 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:rflutter_alert/rflutter_alert.dart';
 
-final HttpLink httpLink = HttpLink(
-  "https://hackernews-r8vt.onrender.com/graphql/");
-
-final ValueNotifier<GraphQLClient> client = ValueNotifier<GraphQLClient>(
-  GraphQLClient(
-    link: httpLink,
-    cache: GraphQLCache(),
-  ),
-);
 const String query = """
-query   Links {
+query{
   links{
     url
-    description    
+    description
+    postedBy {
+      username
+    }
   }
 }
 """;
@@ -193,6 +187,23 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+
+    var appState = context.watch<MyAppState>();
+
+    final AuthLink authLink = AuthLink(
+      getToken: () async{
+        print('token ${appState.token}');
+        return 'JWT ${appState.token}';
+      },
+    );
+
+    final Link httpLink = authLink.concat(HttpLink("https://hackernews-r8vt.onrender.com/graphql/"));
+    final ValueNotifier<GraphQLClient> client = ValueNotifier<GraphQLClient>(
+      GraphQLClient(
+        link: httpLink,
+        cache: GraphQLCache(),
+      ),
+    );
     var colorScheme = Theme.of(context).colorScheme;
 
     Widget page;
