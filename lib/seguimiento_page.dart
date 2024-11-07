@@ -3,6 +3,9 @@ import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:namer_app/main.dart';
 import 'package:provider/provider.dart';
 
+final TextEditingController urlController = TextEditingController();
+final TextEditingController descriptionController = TextEditingController();
+
 String linkPostMutation = """
 mutation CreateLink(\$url: String!, \$description: String!){
   createLink(url: \$url, description: \$description) {
@@ -32,10 +35,12 @@ class SeguimientoPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             TextField(
+              controller: descriptionController,
               decoration:
                   InputDecoration(hintText: 'Ingrese la descripcion del link'),
             ),
             TextField(
+              controller: urlController,
               decoration: InputDecoration(hintText: 'Ingrese su link'),
             ),
             Mutation(
@@ -50,8 +55,6 @@ class SeguimientoPage extends StatelessWidget {
                       print('Completed with errors ');
                    }  else {
                      print('ok ...');
-                     result["createLink"]["url"];
-                     result["createLink"]["description"];
                    }
                  },
                  onError: (error)  {
@@ -66,8 +69,9 @@ class SeguimientoPage extends StatelessWidget {
                  return ElevatedButton(
                  onPressed: ()  {
                    // ignore: await_only_futures
-                   runMutation({ "description": 'description',
-                                  "url": 'link'
+                   runMutation({ 
+                                  "description": descriptionController.text,
+                                  "url": urlController.text
                                  });
                  },
                  child: const Text('Guardar registro'),

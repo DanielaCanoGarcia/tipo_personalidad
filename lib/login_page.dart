@@ -3,6 +3,8 @@ import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:namer_app/main.dart';
 import 'package:provider/provider.dart';
 
+final TextEditingController userNameController = TextEditingController();
+final TextEditingController passwordController = TextEditingController();
 class LoginPage extends StatelessWidget {
   @override
 
@@ -14,10 +16,12 @@ class LoginPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             TextField(
+              controller: userNameController,
               decoration:
                   InputDecoration(hintText: 'Ingrese su correo electronico'),
             ),
             TextField(
+              controller: passwordController,
               decoration: InputDecoration(hintText: 'Ingrese su contraseña'),
             ),
             Mutation(
@@ -32,9 +36,10 @@ class LoginPage extends StatelessWidget {
                       print('Completed with errors ');
                    }  else {
                      print('ok ...');
-                     appState.username = 'DaniCG';
+                     appState.username = userNameController.text;
                      appState.token = result["tokenAuth"]["token"].toString();
                      print(result["tokenAuth"]["token"]);
+
                    }
                  },
                  onError: (error)  {
@@ -49,8 +54,9 @@ class LoginPage extends StatelessWidget {
                  return ElevatedButton(
                  onPressed: ()  {
                    // ignore: await_only_futures
-                   runMutation({ "username": 'DaniCG',
-                                  "password": 'CAGD020425'
+                   runMutation({ "username": userNameController.text,
+                                  "password": passwordController.text
+
                                  });
                  },
                  child: const Text('Login'),

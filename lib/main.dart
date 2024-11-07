@@ -28,8 +28,8 @@ query{
 """;
 
 const String loginPostMutation = """
-mutation{
-  tokenAuth(username:"DaniCG",password:"CAGD020425"){
+mutation TokenAuth(\$username: String!, \$password: String!){
+  tokenAuth(username: \$username,password: \$password) {
     token
   }
 }
