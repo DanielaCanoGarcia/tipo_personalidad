@@ -1,9 +1,14 @@
+import 'dart:io';
+
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
+import 'package:namer_app/documentScannerPage.dart';
 import 'package:namer_app/generator_page.dart';
+import 'package:namer_app/linear_pages.dart';
 import 'package:namer_app/login_page.dart';
 import 'package:namer_app/logs_pages.dart';
 import 'package:namer_app/model_page.dart';
+import 'package:namer_app/models/predictions.dart';
 import 'package:namer_app/retrain_page.dart';
 import 'package:namer_app/seguimiento_page.dart';
 import 'package:provider/provider.dart';
@@ -31,6 +36,18 @@ const String loginPostMutation = """
 mutation TokenAuth(\$username: String!, \$password: String!){
   tokenAuth(username: \$username,password: \$password) {
     token
+  }
+}
+""";
+
+const String createUserPostMutation = """
+mutation createUser(\$email: String!, \$username: String!, \$password: String!){
+  createUser(email:\$email, username: \$username, password: \$password) {
+    user{
+    id
+    username
+    email
+    }
   }
 }
 """;
@@ -63,10 +80,39 @@ class MyAppState extends ChangeNotifier {
   var username = "";
   var token = "";
   var error = "";
+  Predictions? predictions;
+
 
   GlobalKey? historyListKey;
   String? predictionResult;
   String? retrainResult;
+
+  void sendPrediction(String input) async {
+    final url = Uri.parse("https://tensorflow-linear-model-hapw.onrender.com/v1/models/linear-model:predict");
+    final headers = {"Content-Type": "application/json;charset=UTF-8"};
+
+    // Dividir la cadena de texto en una lista de números
+    List<double> instances = input.split(',').map((e) => double.tryParse(e.trim()) ?? 0.0).toList();
+    final prediction_instance = {"instances": [instances]};  // Formatear correctamente
+
+    try {
+      print('Sending instances: $prediction_instance'); // Imprimir los datos enviados
+      final res = await http.post(url, headers: headers, body: jsonEncode(prediction_instance));
+      print('Response status: ${res.statusCode}');
+      print('Response body: ${res.body}');
+      if (res.statusCode == 200) {
+        final json = jsonDecode(res.body);
+        predictions = Predictions.fromJson(json);
+        print(predictions!.predictions);
+      } else {
+        error = 'Request failed with status: ${res.statusCode}.';
+      }
+    } catch (e) {
+      error = 'Error: $e';
+    }
+    notifyListeners();
+  }
+
 
   void retrainModel({
     required String datasetUrl,
@@ -150,7 +196,6 @@ class MyAppState extends ChangeNotifier {
     notifyListeners();
   }
 
-
   void getNext() {
     history.insert(0, current);
     var animatedList = historyListKey?.currentState as AnimatedListState?;
@@ -215,13 +260,16 @@ class _MyHomePageState extends State<MyHomePage> {
         page = LogsPage();
         break;
       case 2:
-        page = ModelPage();
+        page = LinearPages();
         break;
       case 3:
         page = SeguimientoPage();
         break;
       case 4:
         page = LoginPage ();
+        break;
+      case 5:
+        page = DocumentScannerPage();
         break;
       default:
         throw UnimplementedError('no widget for $selectedIndex');
@@ -261,7 +309,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                       BottomNavigationBarItem(
                         icon: Icon(Icons.heart_broken),
-                        label: 'Model',
+                        label: 'linearPage',
                       ),
                       BottomNavigationBarItem(
                         icon: Icon(Icons.add_box),
@@ -270,6 +318,10 @@ class _MyHomePageState extends State<MyHomePage> {
                       BottomNavigationBarItem(
                         icon: Icon(Icons.login_sharp),
                         label: 'Login',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.login_sharp),
+                        label: 'Scanner',
                       ),
                     ],
                     currentIndex: selectedIndex,
@@ -299,7 +351,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                       NavigationRailDestination(
                         icon: Icon(Icons.heart_broken),
-                        label: Text('Model'),
+                        label: Text('linearPage'),
                       ),
                       NavigationRailDestination(
                         icon: Icon(Icons.add_box),
@@ -308,6 +360,10 @@ class _MyHomePageState extends State<MyHomePage> {
                       NavigationRailDestination(
                         icon: Icon(Icons.add_box),
                         label: Text('Login'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.add_box),
+                        label: Text('Scanner'),
                       ),
                     ],
                     selectedIndex: selectedIndex,
