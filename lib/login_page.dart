@@ -42,7 +42,7 @@ class LoginPage extends StatelessWidget {
                      appState.username = userNameController.text;
                      appState.token = result["tokenAuth"]["token"].toString();
                      print(result["tokenAuth"]["token"]);
-
+                     
                    }
                  },
                  onError: (error)  {

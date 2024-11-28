@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 
 class DocumentScannerPage extends StatefulWidget {
   const DocumentScannerPage({Key? key}) : super(key: key);
@@ -145,9 +144,15 @@ class _DocumentScannerPageState extends State<DocumentScannerPage> {
         final classesLabels = ['dandelion', 'sunflowers', 'daisy', 'tulips', 'roses'];
         final predictedClass = classesLabels[argMax(predictions)];
 
-        print('The predicted class is: $predictedClass');
+        print('Predicciones: $predictions');
+        print('Etiquetas de clases: $classesLabels');
+        print('Índice de clase predicha: ${argMax(predictions)}');
+        print('La clase de flor predicha es: $predictedClass');
 
         Fluttertoast.showToast(msg: 'La clase de flor predicha es: $predictedClass');
+        Fluttertoast.showToast(msg: 'Predicciones: $predictions');
+        Fluttertoast.showToast(msg: 'Etiquetas de clases: $classesLabels');
+
       } else {
         print('Error en la predicción. Respuesta: $jsonResponse');
         Fluttertoast.showToast(msg: 'Error en la predicción.');
