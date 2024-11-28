@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 class DocumentScannerPage extends StatefulWidget {
   const DocumentScannerPage({Key? key}) : super(key: key);
@@ -18,20 +19,25 @@ class _DocumentScannerPageState extends State<DocumentScannerPage> {
   CameraController? _cameraController;
   XFile? _capturedImage;
   bool _isVerifying = false;
+  bool _isUsingFrontCamera = true;
 
   @override
-
   void initState() {
     super.initState();
     _initializeCamera();
   }
 
-  Future<void> _initializeCamera() async {
+  Future<void> _initializeCamera([bool useFrontCamera = true]) async {
     final cameras = await availableCameras();
-    final camera = cameras.firstWhere(
-      (camera) => camera.lensDirection == CameraLensDirection.front,
-      orElse: () => cameras.first,
-    );
+    final camera = useFrontCamera
+        ? cameras.firstWhere(
+            (camera) => camera.lensDirection == CameraLensDirection.front,
+            orElse: () => cameras.first,
+          )
+        : cameras.firstWhere(
+            (camera) => camera.lensDirection == CameraLensDirection.back,
+            orElse: () => cameras.first,
+          );
 
     _cameraController = CameraController(camera, ResolutionPreset.medium);
     await _cameraController!.initialize();
@@ -40,52 +46,74 @@ class _DocumentScannerPageState extends State<DocumentScannerPage> {
   }
 
   Future<void> _takePhoto() async {
-    final image = await _cameraController!.takePicture();
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      Fluttertoast.showToast(msg: 'Cámara no está lista.');
+      return;
+    }
+    try {
+      final image = await _cameraController!.takePicture();
 
-    setState(() {
-      _capturedImage = image;
-    });
+      setState(() {
+        _capturedImage = image;
+      });
+    } catch (e) {
+      Fluttertoast.showToast(msg: 'Error al tomar la foto: $e');
+    }
   }
 
   Future<void> _pickPhoto() async {
-  final image = await ImagePicker().pickImage(source: ImageSource.gallery);
+    try {
+      final image = await ImagePicker().pickImage(source: ImageSource.gallery);
 
-  if (image != null) {
-    final resizedImageBytes = await _resizeImage(File(image.path));
-    await _verifyPhoto(resizedImageBytes);  // Ajusta esta línea según las modificaciones sugeridas
+      if (image != null) {
+        final resizedImageBytes = await _resizeImage(File(image.path));
+        setState(() {
+          _capturedImage = XFile(image.path);
+        });
+        await _verifyPhoto(resizedImageBytes);
+      }
+    } catch (e) {
+      Fluttertoast.showToast(msg: 'Error al seleccionar la foto: $e');
+    }
   }
-}
 
- Future<List<List<List<List<int>>>>> _resizeImage(File imageFile) async {
-  final bytes = await imageFile.readAsBytes();
-  final uint8List = Uint8List.fromList(bytes);
+  Future<List<List<List<List<int>>>>> _resizeImage(File imageFile) async {
+    final bytes = await imageFile.readAsBytes();
+    final uint8List = Uint8List.fromList(bytes);
 
-  // Ajustar la forma a (1, 150, 150, 3)
-  final reshapedImage = _reshapeImage(uint8List, height: 150, width: 150, channels: 3);
+    // Ajustar la forma a (1, 64, 64, 3)
+    final reshapedImage = _reshapeImage(uint8List, height: 64, width: 64, channels: 3);
 
-  return reshapedImage;
-}
+    return reshapedImage;
+  }
 
-
-List<List<List<List<int>>>> _reshapeImage(Uint8List imageBytes, {required int height, required int width, required int channels}) {
-  final reshapedImage = List.generate(
-    1,  // Batch size de 1
-    (i) => List.generate(
-      height,
-      (j) => List.generate(
-        width,
-        (k) => List.generate(
-          channels,
-          (l) => imageBytes[(j * width * channels) + (k * channels) + l],
+  List<List<List<List<int>>>> _reshapeImage(Uint8List imageBytes, {required int height, required int width, required int channels}) {
+    final reshapedImage = List.generate(
+      1,  // Batch size de 1
+      (i) => List.generate(
+        height,
+        (j) => List.generate(
+          width,
+          (k) => List.generate(
+            channels,
+            (l) => imageBytes[(j * width * channels) + (k * channels) + l],
+          ),
         ),
       ),
-    ),
-  );
+    );
 
-  // Return as a List<List<List<List<int>>>>
-  return reshapedImage;
-}
+    return reshapedImage;
+  }
 
+  int argMax(List<double> list) {
+    var maxIndex = 0;
+    for (var i = 1; i < list.length; i++) {
+      if (list[i] > list[maxIndex]) {
+        maxIndex = i;
+      }
+    }
+    return maxIndex;
+  }
 
   Future<void> _verifyPhoto(List<List<List<List<int>>>> resizedImageBytes) async {
     if (_capturedImage == null) {
@@ -98,8 +126,7 @@ List<List<List<List<int>>>> _reshapeImage(Uint8List imageBytes, {required int he
     });
 
     try {
-      const url =
-          'https://reconocimiento-rostro-service-jazaelog.cloud.okteto.net/v1/models/reconocimiento-rostro:predict';
+      const url = 'https://tensorflow-linear-model-0khx.onrender.com/v1/models/flowers-model:predict';
 
       List<List<List<List<int>>>> instances = resizedImageBytes;
       final Map<String, dynamic> predictionInstance = {'instances': instances};
@@ -114,23 +141,16 @@ List<List<List<List<int>>>> _reshapeImage(Uint8List imageBytes, {required int he
       if (response.statusCode == 200) {
         print('Response from server: ${response.body}');
 
-        final predictions = jsonDecode(jsonResponse)['predictions'];
-        final score = (predictions[0] as List<dynamic>)[0] as double;
-        final confidence = (1 - score) * 100;
+        final predictions = jsonDecode(jsonResponse)['predictions'][0].cast<double>();
+        final classesLabels = ['dandelion', 'sunflowers', 'daisy', 'tulips', 'roses'];
+        final predictedClass = classesLabels[argMax(predictions)];
 
-        String personName;
-        if (confidence > 50) {
-          personName = 'Daniela';
-        } else {
-          personName = 'Jazael';
-        }
+        print('The predicted class is: $predictedClass');
 
-        print('Se reconoce: $personName con una confianza del $confidence%');
-
-        Fluttertoast.showToast(msg: 'Esta persona es: $personName con una confianza del $confidence%');
+        Fluttertoast.showToast(msg: 'La clase de flor predicha es: $predictedClass');
       } else {
-        print('No se pudo reconocer el rostro. Respuesta: $jsonResponse');
-        Fluttertoast.showToast(msg: 'No se pudo reconocer el rostro');
+        print('Error en la predicción. Respuesta: $jsonResponse');
+        Fluttertoast.showToast(msg: 'Error en la predicción.');
       }
     } catch (error) {
       print('Error en la solicitud: $error');
@@ -148,6 +168,11 @@ List<List<List<List<int>>>> _reshapeImage(Uint8List imageBytes, {required int he
     super.dispose();
   }
 
+  void _toggleCamera() async {
+    _isUsingFrontCamera = !_isUsingFrontCamera;
+    await _initializeCamera(_isUsingFrontCamera);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
@@ -155,6 +180,15 @@ List<List<List<List<int>>>> _reshapeImage(Uint8List imageBytes, {required int he
     }
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Document Scanner'),
+        actions: [
+          IconButton(
+            icon: Icon(_isUsingFrontCamera ? Icons.camera_front : Icons.camera_rear),
+            onPressed: _toggleCamera,
+          ),
+        ],
+      ),
       body: Stack(
         children: [
           Positioned.fill(
